@@ -1,0 +1,34 @@
+{
+  "name": "troopmanagement",
+  "version": "1.0.0",
+  "main": "index.js",
+"scripts": {
+  "dev": "vite",
+  "server": "json-server --watch data/db.json --port 5000",
+  "start": "concurrently \"npm run dev\" \"npm run server\"",
+  "build": "vite build",
+  "preview": "vite preview",
+  "test": "echo \"Error: no test specified\" && exit 1"
+},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.5",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.548.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.9.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.0",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.1",
+    "vite": "^7.1.12",
+    "json-server": "^0.17.4"
+  }
+}

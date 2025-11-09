@@ -1,0 +1,48 @@
+{
+  "name": "Announcement",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Announcement title"
+    },
+    "message": {
+      "type": "string",
+      "description": "Announcement message"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "Normal",
+        "Important",
+        "Urgent"
+      ],
+      "default": "Normal",
+      "description": "Priority level"
+    },
+    "target_audience": {
+      "type": "string",
+      "enum": [
+        "All",
+        "Leaders Only",
+        "Specific Patrol"
+      ],
+      "default": "All",
+      "description": "Who should see this announcement"
+    },
+    "patrol_filter": {
+      "type": "string",
+      "description": "If targeting specific patrol, which one"
+    },
+    "expires_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When announcement should no longer display"
+    }
+  },
+  "required": [
+    "title",
+    "message",
+    "priority"
+  ]
+}

@@ -1,0 +1,323 @@
+{
+  "users": [
+    {
+      "id": "admin--001",
+      "email": "admin@troop714.org",
+      "password": "admin123",
+      "firstName": "Daniel",
+      "lastName": "Nguyen",
+      "userType": "admin",
+      "troop": "714",
+      "approved": true,
+      "pendingApproval": false,
+      "createdAt": "2025-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "a8ba",
+      "email": "nguyencar503@gmail.com",
+      "password": "testttttt",
+      "firstName": "Carena",
+      "lastName": "Nguyen",
+      "userType": "leader",
+      "troop": "5714",
+      "approved": true,
+      "pendingApproval": false,
+      "createdAt": "2025-11-02T08:00:04.752Z"
+    }
+  ],
+  "scouts": [
+    {
+      "id": "368b",
+      "troop": "714",
+      "first_name": "Daniel",
+      "last_name": "teeeest",
+      "date_of_birth": "",
+      "patrol": "Alligators",
+      "rank": "Second Class",
+      "phone": "",
+      "email": "",
+      "parent_name": "",
+      "parent_phone": "",
+      "parent_email": "",
+      "join_date": "",
+      "position": "",
+      "active": true,
+      "medical_notes": ""
+    },
+    {
+      "id": "d68a",
+      "troop": "714",
+      "first_name": "Jonny",
+      "last_name": "Sims",
+      "date_of_birth": "2011-07-09",
+      "patrol": "Buffalos",
+      "rank": "Unranked",
+      "phone": "",
+      "email": "",
+      "parent_name": "",
+      "parent_phone": "",
+      "parent_email": "",
+      "join_date": "2025-10-12",
+      "position": "",
+      "active": true,
+      "medical_notes": ""
+    },
+    {
+      "id": "823e",
+      "troop": "714",
+      "first_name": "Daniel",
+      "last_name": "Nguyen",
+      "date_of_birth": "2008-11-09",
+      "patrol": "Leadership",
+      "rank": "Life",
+      "phone": "",
+      "email": "",
+      "parent_name": "Katy Nguyen",
+      "parent_phone": "(503)-329-2704",
+      "parent_email": "katyng503@gmail.com",
+      "join_date": "2012-11-25",
+      "position": "Leadership Mentor",
+      "active": true,
+      "medical_notes": ""
+    },
+    {
+      "id": "scout-1761869732658",
+      "troop": "714",
+      "first_name": "Ryan",
+      "last_name": "Martinez",
+      "date_of_birth": "",
+      "patrol": "Alligators",
+      "rank": "Unranked",
+      "phone": "",
+      "email": "rmartinez@email.com",
+      "parent_name": "",
+      "parent_phone": "",
+      "parent_email": "",
+      "join_date": "2025-10-31",
+      "position": "",
+      "active": true,
+      "medical_notes": ""
+    },
+    {
+      "id": "677f",
+      "first_name": "test",
+      "last_name": "eeee",
+      "date_of_birth": "2025-11-01",
+      "patrol": "Eagles",
+      "rank": "Unranked",
+      "phone": "",
+      "email": "",
+      "parent_name": "",
+      "parent_phone": "",
+      "parent_email": "",
+      "join_date": "2025-11-27",
+      "position": "",
+      "active": true,
+      "medical_notes": "",
+      "troop": "5714"
+    }
+  ],
+  "events": [
+    {
+      "id": "b7ce",
+      "troop": "714",
+      "title": "Weekly Troop Meeting",
+      "description": "Weekly Sunday Meeting",
+      "event_type": "Meeting",
+      "start_date": "2025-10-30",
+      "end_date": "2025-10-30",
+      "location": "Our Lady of Lavang Church",
+      "notes": "Flag",
+      "cost": 0,
+      "status": "Completed",
+      "completed_date": "2025-10-30",
+      "completed": true
+    },
+    {
+      "id": "b840",
+      "troop": "714",
+      "title": "test",
+      "description": "",
+      "event_type": "Meeting",
+      "start_date": "2025-10-30",
+      "end_date": "2025-10-30",
+      "location": "",
+      "notes": "",
+      "cost": 0,
+      "status": "Completed",
+      "completed_date": "2025-10-30",
+      "completed": true
+    },
+    {
+      "id": "3787",
+      "troop": "714",
+      "title": "Weekly Troop Meeting",
+      "description": "",
+      "event_type": "Meeting",
+      "start_date": "2025-10-29",
+      "end_date": "2025-10-29",
+      "location": "",
+      "notes": "",
+      "cost": 0
+    },
+    {
+      "id": "d380",
+      "troop": "714",
+      "title": "Weekly Troop Meeting",
+      "description": "",
+      "event_type": "Meeting",
+      "start_date": "2025-11-02",
+      "end_date": "2025-11-02",
+      "location": "Our Lady of Lavang Church",
+      "notes": "",
+      "cost": 0
+    },
+    {
+      "id": "2e62",
+      "title": "test",
+      "description": "",
+      "event_type": "Meeting",
+      "start_date": "2025-11-09",
+      "end_date": "2025-11-10",
+      "location": "test",
+      "notes": "",
+      "cost": 0,
+      "troop": "5714"
+    }
+  ],
+  "attendance": [
+    {
+      "id": "027d",
+      "scout_id": "2417",
+      "event_id": "b7ce",
+      "status": "Present"
+    },
+    {
+      "scout_id": "368b",
+      "event_id": "b7ce",
+      "status": "Present",
+      "id": "3ce6"
+    },
+    {
+      "scout_id": "823e",
+      "event_id": "b7ce",
+      "status": "Present",
+      "id": "da50"
+    },
+    {
+      "id": "4aad",
+      "scout_id": "d68a",
+      "event_id": "b7ce",
+      "status": "Late"
+    },
+    {
+      "id": "2ad3",
+      "scout_id": "368b",
+      "event_id": "d380",
+      "status": "Absent"
+    },
+    {
+      "id": "b839",
+      "scout_id": "d68a",
+      "event_id": "d380",
+      "status": "Excused"
+    },
+    {
+      "id": "bb7c",
+      "scout_id": "823e",
+      "event_id": "d380",
+      "status": "Present"
+    },
+    {
+      "id": "e2cd",
+      "scout_id": "scout-1761869732658",
+      "event_id": "d380",
+      "status": "Present"
+    },
+    {
+      "id": "a380",
+      "scout_id": "scout-1761876210329",
+      "event_id": "d380",
+      "status": "Present"
+    }
+  ],
+  "meritBadges": [
+    {
+      "id": "f7b1",
+      "troop": "714",
+      "scout_id": "d68a",
+      "badge_name": "Camping",
+      "counselor_name": "Ashley Collins",
+      "status": "Completed",
+      "date_started": "2025-10-26",
+      "date_completed": "2025-10-27",
+      "notes": "",
+      "is_eagle_required": true
+    },
+    {
+      "id": "1310",
+      "troop": "714",
+      "scout_id": "scout-1761876210329",
+      "badge_name": "First Aid",
+      "counselor_name": "Tr. Dung",
+      "status": "Completed",
+      "date_started": "2021-12-11",
+      "date_completed": "2025-10-31",
+      "notes": "",
+      "is_eagle_required": true
+    }
+  ],
+  "advancements": [
+    {
+      "id": "bd8c",
+      "troop": "714",
+      "scout_id": "scout-1761876210329",
+      "rank": "Second Class",
+      "status": "In Progress",
+      "date_started": "2025-10-06",
+      "date_completed": "",
+      "scoutmaster_conference_date": "",
+      "board_of_review_date": "",
+      "requirements": {
+        "4": false,
+        "1a": false,
+        "1b": false,
+        "1c": false,
+        "2a": false,
+        "2b": false,
+        "2c": false,
+        "2d": false,
+        "2e": false,
+        "2f": false,
+        "2g": false,
+        "3a": false,
+        "3b": false,
+        "3c": false,
+        "3d": false,
+        "5a": false,
+        "5b": false,
+        "5c": false,
+        "5d": false,
+        "6a": false,
+        "6b": false,
+        "6c": false,
+        "6d": false,
+        "7a": false,
+        "7b": false
+      },
+      "notes": ""
+    }
+  ],
+  "announcements": [
+    {
+      "id": "9c8b",
+      "troop": "714",
+      "title": "heyyyyyyyy",
+      "message": "yesy",
+      "priority": "Normal",
+      "target_audience": "All",
+      "patrol_filter": "",
+      "expires_date": ""
+    }
+  ]
+}

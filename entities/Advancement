@@ -1,0 +1,72 @@
+{
+  "name": "Advancement",
+  "type": "object",
+  "properties": {
+    "scout_id": {
+      "type": "string",
+      "description": "Reference to Scout entity ID"
+    },
+    "rank": {
+      "type": "string",
+      "enum": [
+        "Scout",
+        "Tenderfoot",
+        "Second Class",
+        "First Class",
+        "Star",
+        "Life",
+        "Eagle"
+      ],
+      "description": "Rank being worked on or earned"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "In Progress",
+        "Ready for SM Conference",
+        "SM Conference Complete",
+        "Ready for Board of Review",
+        "Board of Review Complete",
+        "Awarded"
+      ],
+      "default": "In Progress",
+      "description": "Progress status"
+    },
+    "date_started": {
+      "type": "string",
+      "format": "date",
+      "description": "Date started working on rank"
+    },
+    "date_completed": {
+      "type": "string",
+      "format": "date",
+      "description": "Date rank was earned"
+    },
+    "scoutmaster_conference_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of Scoutmaster Conference"
+    },
+    "board_of_review_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of Board of Review"
+    },
+    "requirements": {
+      "type": "object",
+      "description": "Requirements with completion status",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Progress notes"
+    }
+  },
+  "required": [
+    "scout_id",
+    "rank",
+    "status"
+  ]
+}

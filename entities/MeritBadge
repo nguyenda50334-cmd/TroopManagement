@@ -1,0 +1,59 @@
+{
+  "name": "MeritBadge",
+  "type": "object",
+  "properties": {
+    "scout_id": {
+      "type": "string",
+      "description": "Reference to Scout entity ID"
+    },
+    "badge_name": {
+      "type": "string",
+      "description": "Name of the merit badge"
+    },
+    "counselor_name": {
+      "type": "string",
+      "description": "Merit badge counselor"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Not Started",
+        "In Progress",
+        "Completed"
+      ],
+      "default": "Not Started",
+      "description": "Progress status"
+    },
+    "date_started": {
+      "type": "string",
+      "format": "date",
+      "description": "Date started working on badge"
+    },
+    "date_completed": {
+      "type": "string",
+      "format": "date",
+      "description": "Date badge was earned"
+    },
+    "requirements": {
+      "type": "object",
+      "description": "Requirements with completion status",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes or progress details"
+    },
+    "is_eagle_required": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is an Eagle-required merit badge"
+    }
+  },
+  "required": [
+    "scout_id",
+    "badge_name",
+    "status"
+  ]
+}

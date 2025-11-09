@@ -1,0 +1,34 @@
+{
+  "name": "Attendance",
+  "type": "object",
+  "properties": {
+    "scout_id": {
+      "type": "string",
+      "description": "Reference to Scout entity ID"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Reference to Event entity ID"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Present",
+        "Absent",
+        "Excused",
+        "Late"
+      ],
+      "default": "Present",
+      "description": "Attendance status"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes about attendance"
+    }
+  },
+  "required": [
+    "scout_id",
+    "event_id",
+    "status"
+  ]
+}
