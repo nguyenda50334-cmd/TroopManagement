@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { LayoutDashboard, Users, Award, Calendar, TrendingUp, Shield, LogOut } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTroop } from "../../context/TroopContext";
+import { useTroop } from "/context/TroopContext";
 
 const navigationItems = [
   { title: "Dashboard", url: "/app/dashboard", icon: LayoutDashboard },
