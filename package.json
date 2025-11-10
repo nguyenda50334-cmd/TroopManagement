@@ -2,7 +2,7 @@
   "name": "troopmanagement",
   "version": "1.0.0",
   "scripts": {
-    "start": "json-server --watch data/db.json --port 5000 --host 0.0.0.0",
+    "start": "node server.js",
     "dev": "vite",
     "server": "json-server --watch data/db.json --port 5000",
     "build": "vite build",
