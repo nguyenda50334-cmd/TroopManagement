@@ -25,14 +25,14 @@ export default function Scouts() {
   const { data: allScouts = [], isLoading } = useQuery({
     queryKey: ['scouts', activeTroop],
     queryFn: () =>
-      fetch(`http://localhost:5000/scouts?troop=${activeTroop}`)
+      fetch(`${import.meta.env.VITE_API_URL}/scouts?troop=${activeTroop}`)
         .then(res => res.json()),
   });
 
   // Create scout
   const createScoutMutation = useMutation({
     mutationFn: (data) =>
-      fetch('http://localhost:5000/scouts', {
+      fetch(`${import.meta.env.VITE_API_URL}/scouts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...data, troop: activeTroop }),
@@ -47,7 +47,7 @@ export default function Scouts() {
   // Update scout
   const updateScoutMutation = useMutation({
     mutationFn: ({ id, data }) =>
-      fetch(`http://localhost:5000/scouts/${id}`, {
+      fetch(`${import.meta.env.VITE_API_URL}/scouts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -62,7 +62,7 @@ export default function Scouts() {
   // Delete scout
   const deleteScoutMutation = useMutation({
     mutationFn: (id) =>
-      fetch(`http://localhost:5000/scouts/${id}`, {
+      fetch(`${import.meta.env.VITE_API_URL}/scouts/${id}`, {
         method: 'DELETE',
       }).then(res => res.json()),
     onSuccess: () => {

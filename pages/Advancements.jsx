@@ -11,7 +11,7 @@ const rankOrder = ["Scout", "Tenderfoot", "Second Class", "First Class", "Star",
 
 // Generic fetch function for JSON-server
 const fetchJSON = async (endpoint) => {
-  const res = await fetch(`http://localhost:5000/${endpoint}`);
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/${endpoint}`);
   if (!res.ok) throw new Error("Network response was not ok");
   return res.json();
 };
@@ -38,7 +38,7 @@ export default function Advancements() {
   // Mutations for creating/updating advancements
   const createAdvancementMutation = useMutation({
     mutationFn: async (data) => {
-      const res = await fetch("http://localhost:5000/advancements", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/advancements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -54,7 +54,7 @@ export default function Advancements() {
 
   const updateAdvancementMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const res = await fetch(`http://localhost:5000/advancements/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/advancements/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -95,7 +95,7 @@ export default function Advancements() {
         const nextRank = rankOrder[currentRankIndex + 1];
         if (nextRank) {
           // Update scout's rank in JSON-server
-          await fetch(`http://localhost:5000/scouts/${scout.id}`, {
+          await fetch(`${import.meta.env.VITE_API_URL}/scouts/${scout.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...scout, rank: nextRank }),

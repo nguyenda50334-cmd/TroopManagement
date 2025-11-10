@@ -378,19 +378,19 @@ export default function Dashboard() {
   // Fetch scouts data - filtered by troop
   const { data: scouts = [], isLoading: scoutsLoading } = useQuery({
     queryKey: ['scouts', activeTroop],
-    queryFn: () => fetch(`http://localhost:5000/scouts?troop=${activeTroop}`).then(res => res.json()),
+    queryFn: () => fetch(`${import.meta.env.VITE_API_URL}/scouts?troop=${activeTroop}`).then(res => res.json()),
   });
 
   // Fetch merit badges data - filtered by troop
   const { data: meritBadges = [], isLoading: badgesLoading } = useQuery({
     queryKey: ['meritBadges', activeTroop],
-    queryFn: () => fetch(`http://localhost:5000/meritBadges?troop=${activeTroop}`).then(res => res.json()),
+    queryFn: () => fetch(`${import.meta.env.VITE_API_URL}/meritBadges?troop=${activeTroop}`).then(res => res.json()),
   });
 
   // Fetch events data - filtered by troop
   const { data: events = [], isLoading: eventsLoading } = useQuery({
     queryKey: ['events', activeTroop],
-    queryFn: () => fetch(`http://localhost:5000/events?troop=${activeTroop}`).then(res => res.json()),
+    queryFn: () => fetch(`${import.meta.env.VITE_API_URL}/events?troop=${activeTroop}`).then(res => res.json()),
   });
 
   const isLoading = scoutsLoading || badgesLoading || eventsLoading;

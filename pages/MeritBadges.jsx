@@ -13,7 +13,7 @@ import BadgeDialog from "/components/badges/BadgeDialog";
 
 // Generic fetch function for local JSON-server
 const fetchJSON = async (endpoint) => {
-  const res = await fetch(`http://localhost:5000/${endpoint}`);
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/${endpoint}`);
   if (!res.ok) throw new Error("Network response was not ok");
   return res.json();
 };
@@ -61,7 +61,7 @@ export default function MeritBadges() {
   // Local mutations using JSON-server
   const createBadgeMutation = useMutation({
     mutationFn: async (data) => {
-      const res = await fetch("http://localhost:5000/meritBadges", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/meritBadges`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, troop: activeTroop }),
@@ -77,7 +77,7 @@ export default function MeritBadges() {
 
   const updateBadgeMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const res = await fetch(`http://localhost:5000/meritBadges/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/meritBadges/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -111,7 +111,7 @@ export default function MeritBadges() {
   // Delete merit badge
   const deleteBadgeMutation = useMutation({
     mutationFn: (id) =>
-      fetch(`http://localhost:5000/meritBadges/${id}`, {
+      fetch(`${import.meta.env.VITE_API_URL}/meritBadges/${id}`, {
         method: 'DELETE',
       }).then(res => res.json()),
     onSuccess: () => {

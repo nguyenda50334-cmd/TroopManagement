@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { CheckCircle2, XCircle, AlertCircle, Clock, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { useTroop } from "../../context/TroopContext";
 
 const statusConfig = {
   "Present": {
@@ -33,14 +34,25 @@ const statusConfig = {
 };
 
 export default function AttendanceDialog({ event, onClose }) {
+  const { activeTroop } = useTroop();
   const queryClient = useQueryClient();
 
-  // Fetch scouts from json-server
+  console.log('AttendanceDialog - activeTroop:', activeTroop);
+  console.log('AttendanceDialog - event:', event);
+
+  // Fetch scouts from json-server - FILTERED BY TROOP
   const { data: scouts = [] } = useQuery({
-    queryKey: ['scouts'],
+    queryKey: ['scouts', activeTroop],
     queryFn: () => fetch('http://localhost:5000/scouts').then(res => res.json()),
     enabled: !!event,
   });
+
+  console.log('AttendanceDialog - all scouts:', scouts);
+
+  // Filter scouts by active troop and active status
+  const troopScouts = scouts.filter(s => s.troop === activeTroop && s.active);
+  
+  console.log('AttendanceDialog - troopScouts (filtered):', troopScouts);
 
   // Fetch attendance records for this event
   const { data: attendance = [] } = useQuery({
@@ -109,18 +121,31 @@ export default function AttendanceDialog({ event, onClose }) {
 
   if (!event) return null;
 
-  // Filter for active scouts only
-  const activeScouts = scouts.filter(s => s.active);
-
-  // Calculate statistics
-  const presentCount = attendance.filter(a => a.status === 'Present').length;
-  const lateCount = attendance.filter(a => a.status === 'Late').length;
-  const absentCount = attendance.filter(a => a.status === 'Absent').length;
-  const excusedCount = attendance.filter(a => a.status === 'Excused').length;
+  // Calculate statistics using troopScouts instead of activeScouts
+  const presentCount = attendance.filter(a => {
+    // Only count attendance for scouts in current troop
+    const scout = troopScouts.find(s => s.id === a.scout_id);
+    return scout && a.status === 'Present';
+  }).length;
+  
+  const lateCount = attendance.filter(a => {
+    const scout = troopScouts.find(s => s.id === a.scout_id);
+    return scout && a.status === 'Late';
+  }).length;
+  
+  const absentCount = attendance.filter(a => {
+    const scout = troopScouts.find(s => s.id === a.scout_id);
+    return scout && a.status === 'Absent';
+  }).length;
+  
+  const excusedCount = attendance.filter(a => {
+    const scout = troopScouts.find(s => s.id === a.scout_id);
+    return scout && a.status === 'Excused';
+  }).length;
   
   // Attendance rate: (Present + Late) / Total * 100
   const effectivePresent = presentCount + lateCount;
-  const attendanceRate = activeScouts.length > 0 ? Math.round((effectivePresent / activeScouts.length) * 100) : 0;
+  const attendanceRate = troopScouts.length > 0 ? Math.round((effectivePresent / troopScouts.length) * 100) : 0;
 
   return (
     <Dialog open={!!event} onOpenChange={onClose}>
@@ -131,6 +156,9 @@ export default function AttendanceDialog({ event, onClose }) {
               <DialogTitle className="text-2xl font-bold">Event Attendance</DialogTitle>
               <div className="text-sm text-slate-600 mt-2">
                 {event.title} - {format(parseISO(event.start_date + 'T00:00:00'), "MMMM d, yyyy")}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                Troop {activeTroop}
               </div>
             </div>
             <button
@@ -146,7 +174,7 @@ export default function AttendanceDialog({ event, onClose }) {
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div>
-              <div className="text-2xl font-bold">{activeScouts.length}</div>
+              <div className="text-2xl font-bold">{troopScouts.length}</div>
               <div className="text-sm text-white/80">Total Scouts</div>
             </div>
             <div>
@@ -170,7 +198,7 @@ export default function AttendanceDialog({ event, onClose }) {
 
         {/* Scout List */}
         <div className="space-y-3">
-          {activeScouts.map((scout) => {
+          {troopScouts.map((scout) => {
             const scoutAttendance = attendance.find(a => a.scout_id === scout.id);
             const currentStatus = scoutAttendance?.status || null;
 
@@ -216,8 +244,10 @@ export default function AttendanceDialog({ event, onClose }) {
             );
           })}
 
-          {activeScouts.length === 0 && (
-            <p className="text-center text-slate-500 py-8">No active scouts found</p>
+          {troopScouts.length === 0 && (
+            <p className="text-center text-slate-500 py-8">
+              No active scouts found for Troop {activeTroop}
+            </p>
           )}
         </div>
       </DialogContent>

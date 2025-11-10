@@ -10,7 +10,7 @@ import AttendanceDialog from "../components/events/AttendanceDialog";
 
 // Generic fetch function for local JSON-server
 const fetchJSON = async (endpoint) => {
-  const res = await fetch(`http://localhost:5000/${endpoint}`);
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/${endpoint}`);
   if (!res.ok) throw new Error("Network response was not ok");
   return res.json();
 };
@@ -33,7 +33,7 @@ export default function Events() {
   // Mutations for creating/updating events
   const createEventMutation = useMutation({
     mutationFn: async (data) => {
-      const res = await fetch("http://localhost:5000/events", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, troop: activeTroop }),
@@ -49,10 +49,10 @@ export default function Events() {
 
   const updateEventMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const res = await fetch(`http://localhost:5000/events/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/events`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, troop: activeTroop }),
       });
       return res.json();
     },
@@ -65,7 +65,7 @@ export default function Events() {
 
   const deleteEventMutation = useMutation({
     mutationFn: async (id) => {
-      const res = await fetch(`http://localhost:5000/events/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/events`, {
         method: "DELETE",
       });
       return res.json();

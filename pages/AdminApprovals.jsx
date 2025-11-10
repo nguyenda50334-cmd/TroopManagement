@@ -12,14 +12,14 @@ export default function AdminApprovals() {
   // Fetch all users
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
-    queryFn: () => fetch('http://localhost:5000/users').then(res => res.json()),
+    queryFn: () => fetch(`${import.meta.env.VITE_API_URL}/users`).then(res => res.json()),
   });
 
   // Approve user mutation
   const approveMutation = useMutation({
     mutationFn: async ({ id, userData }) => {
       // First, approve the user account
-      const userResponse = await fetch(`http://localhost:5000/users/${id}`, {
+      const userResponse = await fetch(`${import.meta.env.VITE_API_URL}/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...userData, approved: true, pendingApproval: false })
@@ -45,7 +45,7 @@ export default function AdminApprovals() {
           medical_notes: ""
         };
         
-        await fetch('http://localhost:5000/scouts', {
+        await fetch(`${import.meta.env.VITE_API_URL}/scouts`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(scoutData)
@@ -63,7 +63,7 @@ export default function AdminApprovals() {
   // Reject user mutation
   const rejectMutation = useMutation({
     mutationFn: async (id) => {
-      const response = await fetch(`http://localhost:5000/users/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/users/${id}`, {
         method: 'DELETE'
       });
       return response.json();

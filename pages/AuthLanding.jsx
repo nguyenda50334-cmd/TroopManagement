@@ -39,7 +39,7 @@ export default function AuthLanding() {
     };
 
     try {
-      const response = await fetch('http://localhost:5000/users', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newUser)
@@ -65,7 +65,7 @@ export default function AuthLanding() {
       localStorage.removeItem('activeTroop');
       
       // Fetch users and check credentials
-      const response = await fetch('http://localhost:5000/users');
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/users`);
       const users = await response.json();
       
       console.log('All users:', users);
