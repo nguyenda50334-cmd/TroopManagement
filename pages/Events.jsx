@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -24,11 +24,26 @@ export default function Events() {
 
   const queryClient = useQueryClient();
 
-  // Fetch events - filtered by troop
-  const { data: events = [], isLoading } = useQuery({
+  // Reset tab when troop changes
+  useEffect(() => {
+    setActiveTab("upcoming");
+    setShowDialog(false);
+    setEditingEvent(null);
+    setAttendanceEvent(null);
+  }, [activeTroop]);
+
+  // Fetch all events and filter by troop in the component
+  const { data: allEvents = [], isLoading } = useQuery({
     queryKey: ["events", activeTroop],
-    queryFn: () => fetchJSON(`events?troop=${activeTroop}`),
+    queryFn: () => fetchJSON("events"),
   });
+
+  // Filter events by active troop
+  const events = allEvents.filter(e => e.troop === activeTroop);
+
+  console.log('Events page - activeTroop:', activeTroop);
+  console.log('Events page - all events:', allEvents);
+  console.log('Events page - filtered events:', events);
 
   // Mutations for creating/updating events
   const createEventMutation = useMutation({
@@ -41,7 +56,7 @@ export default function Events() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events", activeTroop] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       setShowDialog(false);
       setEditingEvent(null);
     },
@@ -49,15 +64,15 @@ export default function Events() {
 
   const updateEventMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/events`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/events/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, troop: activeTroop }),
+        body: JSON.stringify(data),
       });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events", activeTroop] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       setShowDialog(false);
       setEditingEvent(null);
     },
@@ -65,13 +80,27 @@ export default function Events() {
 
   const deleteEventMutation = useMutation({
     mutationFn: async (id) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/events`, {
+      console.log('Deleting event:', id);
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/events/${id}`, {
         method: "DELETE",
       });
-      return res.json();
+      
+      if (!res.ok) {
+        throw new Error('Failed to delete event');
+      }
+      
+      // For DELETE requests, sometimes the response is empty
+      // Try to parse as JSON, but don't fail if it's empty
+      try {
+        return await res.json();
+      } catch {
+        return { success: true };
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events", activeTroop] });
+      console.log('Event deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      
       // Play success sound
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
@@ -89,6 +118,10 @@ export default function Events() {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.25);
     },
+    onError: (error) => {
+      console.error('Error deleting event:', error);
+      alert('Failed to delete event. Please try again.');
+    }
   });
 
   const handleSave = (data) => {
@@ -100,6 +133,7 @@ export default function Events() {
   };
 
   const handleDelete = (id) => {
+    console.log('handleDelete called with id:', id);
     deleteEventMutation.mutate(id);
   };
 
@@ -213,7 +247,7 @@ export default function Events() {
         {displayEvents.length === 0 && (
           <div className="text-center py-12">
             <p className="text-slate-500 mb-4">
-              No {activeTab} events found
+              No {activeTab} events found for Troop {activeTroop}
             </p>
             {activeTab === "upcoming" && (
               <Button
