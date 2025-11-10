@@ -21,13 +21,16 @@ export default function Scouts() {
 
   const queryClient = useQueryClient();
 
-  // Fetch scouts from local JSON Server - filtered by troop
+  // Fetch scouts from local JSON Server
   const { data: allScouts = [], isLoading } = useQuery({
     queryKey: ['scouts', activeTroop],
     queryFn: () =>
-      fetch(`${import.meta.env.VITE_API_URL}/scouts?troop=${activeTroop}`)
+      fetch(`${import.meta.env.VITE_API_URL}/scouts`)
         .then(res => res.json()),
   });
+
+  // Filter scouts by active troop
+  const scouts = allScouts.filter(s => s.troop === activeTroop);
 
   // Create scout
   const createScoutMutation = useMutation({
@@ -38,7 +41,7 @@ export default function Scouts() {
         body: JSON.stringify({ ...data, troop: activeTroop }),
       }).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scouts', activeTroop] });
+      queryClient.invalidateQueries({ queryKey: ['scouts'] });
       setShowDialog(false);
       setEditingScout(null);
     },
@@ -53,20 +56,68 @@ export default function Scouts() {
         body: JSON.stringify(data),
       }).then(res => res.json()),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scouts', activeTroop] });
+      queryClient.invalidateQueries({ queryKey: ['scouts'] });
       setShowDialog(false);
       setEditingScout(null);
     },
   });
 
-  // Delete scout
+  // Delete scout with cascade - also delete their merit badges, advancements, and attendance
   const deleteScoutMutation = useMutation({
-    mutationFn: (id) =>
-      fetch(`${import.meta.env.VITE_API_URL}/scouts/${id}`, {
+    mutationFn: async (scoutId) => {
+      console.log('Deleting scout:', scoutId);
+      
+      // 1. Fetch all merit badges for this scout
+      const meritBadgesRes = await fetch(`${import.meta.env.VITE_API_URL}/meritBadges?scout_id=${scoutId}`);
+      const meritBadges = await meritBadgesRes.json();
+      console.log('Found merit badges to delete:', meritBadges.length);
+      
+      // 2. Fetch all advancements for this scout
+      const advancementsRes = await fetch(`${import.meta.env.VITE_API_URL}/advancements?scout_id=${scoutId}`);
+      const advancements = await advancementsRes.json();
+      console.log('Found advancements to delete:', advancements.length);
+      
+      // 3. Fetch all attendance records for this scout
+      const attendanceRes = await fetch(`${import.meta.env.VITE_API_URL}/attendance?scout_id=${scoutId}`);
+      const attendanceRecords = await attendanceRes.json();
+      console.log('Found attendance records to delete:', attendanceRecords.length);
+      
+      // 4. Delete all merit badges
+      for (const badge of meritBadges) {
+        await fetch(`${import.meta.env.VITE_API_URL}/meritBadges/${badge.id}`, {
+          method: 'DELETE',
+        });
+      }
+      
+      // 5. Delete all advancements
+      for (const advancement of advancements) {
+        await fetch(`${import.meta.env.VITE_API_URL}/advancements/${advancement.id}`, {
+          method: 'DELETE',
+        });
+      }
+      
+      // 6. Delete all attendance records
+      for (const attendance of attendanceRecords) {
+        await fetch(`${import.meta.env.VITE_API_URL}/attendance/${attendance.id}`, {
+          method: 'DELETE',
+        });
+      }
+      
+      // 7. Finally, delete the scout
+      const scoutRes = await fetch(`${import.meta.env.VITE_API_URL}/scouts/${scoutId}`, {
         method: 'DELETE',
-      }).then(res => res.json()),
+      });
+      
+      console.log('Scout and all related data deleted successfully');
+      return scoutRes.json();
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scouts', activeTroop] });
+      // Invalidate all related queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['scouts'] });
+      queryClient.invalidateQueries({ queryKey: ['meritBadges'] });
+      queryClient.invalidateQueries({ queryKey: ['advancements'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      
       // Play success sound
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
@@ -84,6 +135,10 @@ export default function Scouts() {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.25);
     },
+    onError: (error) => {
+      console.error('Error deleting scout:', error);
+      alert('Failed to delete scout. Please try again.');
+    }
   });
 
   const handleDelete = (id) => {
@@ -103,7 +158,7 @@ export default function Scouts() {
     setShowDialog(true);
   };
 
-  const filteredScouts = allScouts.filter(scout => {
+  const filteredScouts = scouts.filter(scout => {
     const matchesSearch = 
       scout.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       scout.last_name?.toLowerCase().includes(searchTerm.toLowerCase());

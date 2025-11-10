@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { LayoutDashboard, Users, Award, Calendar, TrendingUp, Shield, LogOut } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTroop } from "/context/TroopContext";
+import { useTroop } from "../../context/TroopContext";
 
 const navigationItems = [
   { title: "Dashboard", url: "/app/dashboard", icon: LayoutDashboard },
@@ -58,9 +58,9 @@ export default function Layout() {
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={false}>
       <div className="min-h-screen flex w-full bg-gradient-to-br from-slate-50 to-blue-50">
-        <Sidebar className="border-r border-slate-200 bg-white/95 backdrop-blur-sm">
+        <Sidebar className="border-r border-slate-200 bg-white/95 backdrop-blur-sm" collapsible="offcanvas">
           <SidebarHeader className="border-b border-slate-200 p-6">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-900 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
@@ -162,10 +162,17 @@ export default function Layout() {
         </Sidebar>
 
         <main className="flex-1 flex flex-col">
-          <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 md:hidden sticky top-0 z-10">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger className="hover:bg-slate-100 p-2 rounded-lg transition-colors duration-200" />
-              <h1 className="text-lg font-bold text-slate-900">Troop Manager</h1>
+          <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-6 py-4 sticky top-0 z-10 md:hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="hover:bg-slate-100 p-2 rounded-lg transition-colors duration-200" />
+                <h1 className="text-lg font-bold text-slate-900">Troop {activeTroop}</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-md">
+                  <span className="text-slate-900 font-bold text-xs">{userInitial}</span>
+                </div>
+              </div>
             </div>
           </header>
 
