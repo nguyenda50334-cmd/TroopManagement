@@ -1,15 +1,14 @@
 {
   "name": "troopmanagement",
   "version": "1.0.0",
-  "main": "index.js",
-"scripts": {
-  "dev": "vite",
-  "server": "json-server --watch data/db.json --port 5000",
-  "start": "concurrently \"npm run dev\" \"npm run server\"",
-  "build": "vite build",
-  "preview": "vite preview",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
+  "scripts": {
+    "start": "json-server --watch data/db.json --port 5000 --host 0.0.0.0",
+    "dev": "vite",
+    "server": "json-server --watch data/db.json --port 5000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
