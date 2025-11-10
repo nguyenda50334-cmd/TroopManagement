@@ -9,5 +9,5 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./")
     },
   },
-  base: "/app/", // <-- Important for Netlify static hosting
+  base: "/", // <-- Important for Netlify static hosting
 });
