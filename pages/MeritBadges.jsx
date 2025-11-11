@@ -115,7 +115,7 @@ export default function MeritBadges() {
 
   // Filters
   const filteredBadges = troopBadges.filter(b => {
-    const matchesSearch = badge.badge_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = b.badge_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || b.status === statusFilter;
     const matchesScout = selectedScoutId === "all" || b.scout_id === selectedScoutId;
     return matchesSearch && matchesStatus && matchesScout;

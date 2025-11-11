@@ -4,6 +4,24 @@ import { useNavigate } from "react-router-dom";
 import { Users, Award, Calendar, TrendingUp, Plus, ChevronRight, Shield, MapPin } from "lucide-react";
 import { useTroop } from "../context/TroopContext";
 
+const JSONBIN_BASE_URL = `https://api.jsonbin.io/v3/b/${import.meta.env.VITE_JSONBIN_ID}`;
+
+const fetchJSONBin = async (method = "GET", data) => {
+  const options = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": import.meta.env.VITE_JSONBIN_KEY,
+    },
+  };
+  if (data) options.body = JSON.stringify(data);
+
+  const res = await fetch(JSONBIN_BASE_URL, options);
+  if (!res.ok) throw new Error(`Jsonbin request failed: ${res.status}`);
+  const json = await res.json();
+  return json.record; // Jsonbin wraps data in "record"
+};
+
 const StatsCard = ({ title, value, icon: Icon, gradient, isLoading, linkTo }) => {
   const navigate = useNavigate();
   
@@ -367,31 +385,26 @@ const UpcomingEvents = ({ events, isLoading }) => {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { activeTroop } = useTroop();
-  
+
   const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
   const userFirstName = currentUser.firstName || 'Leader';
-  
-  const { data: allScouts = [], isLoading: scoutsLoading } = useQuery({
-    queryKey: ['scouts', activeTroop],
-    queryFn: () => fetch(`${import.meta.env.VITE_API_URL}/scouts`).then(res => res.json()),
+
+  // Fetch all data from JSONBin once
+  const { data: binData = {}, isLoading: binLoading } = useQuery({
+    queryKey: ['binData'],
+    queryFn: () => fetchJSONBin(),
   });
 
-  const { data: allMeritBadges = [], isLoading: badgesLoading } = useQuery({
-    queryKey: ['meritBadges', activeTroop],
-    queryFn: () => fetch(`${import.meta.env.VITE_API_URL}/meritBadges`).then(res => res.json()),
-  });
+  // Extract and filter by troop
+  const allScouts = binData.scouts || [];
+  const allMeritBadges = binData.meritBadges || [];
+  const allEvents = binData.events || [];
 
-  const { data: allEvents = [], isLoading: eventsLoading } = useQuery({
-    queryKey: ['events', activeTroop],
-    queryFn: () => fetch(`${import.meta.env.VITE_API_URL}/events`).then(res => res.json()),
-  });
-
-  // Filter by troop
   const scouts = allScouts.filter(s => s.troop === activeTroop);
   const meritBadges = allMeritBadges.filter(b => b.troop === activeTroop);
   const events = allEvents.filter(e => e.troop === activeTroop);
 
-  const isLoading = scoutsLoading || badgesLoading || eventsLoading;
+  const isLoading = binLoading;
 
   const activeScouts = scouts.filter(s => s.active).length;
   const completedBadges = meritBadges.filter(b => b.status === 'Completed').length;
@@ -456,25 +469,23 @@ export default function Dashboard() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Left Column - 2/3 width */}
+          {/* Left Column */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            <UpcomingEvents events={events} isLoading={eventsLoading} />
-            
+            <UpcomingEvents events={events} isLoading={isLoading} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <PatrolBreakdown scouts={scouts} isLoading={scoutsLoading} />
-              <RankDistribution scouts={scouts} isLoading={scoutsLoading} />
+              <PatrolBreakdown scouts={scouts} isLoading={isLoading} />
+              <RankDistribution scouts={scouts} isLoading={isLoading} />
             </div>
           </div>
 
-          {/* Right Column - 1/3 width */}
+          {/* Right Column */}
           <div className="space-y-4 sm:space-y-6">
             <RecentActivity 
               scouts={scouts} 
               meritBadges={meritBadges} 
               isLoading={isLoading} 
             />
-            
-            {/* Quick Actions Card */}
+
             <div className="bg-gradient-to-br from-blue-900 to-blue-700 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-lg text-white">
               <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">Quick Actions</h3>
               <div className="space-y-2 sm:space-y-3">
