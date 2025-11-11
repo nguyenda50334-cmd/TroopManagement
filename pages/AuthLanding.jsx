@@ -4,6 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// --- Jsonbin.io helpers ---
+const fetchJSONBin = async () => {
+  const res = await fetch(`https://api.jsonbin.io/v3/b/${import.meta.env.VITE_JSONBIN_ID}`, {
+    headers: {
+      "X-Master-Key": import.meta.env.VITE_JSONBIN_KEY,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) throw new Error("Failed to fetch from Jsonbin.io");
+  const data = await res.json();
+  return data.record;
+};
+
+const updateJSONBin = async (updatedBin) => {
+  const res = await fetch(`https://api.jsonbin.io/v3/b/${import.meta.env.VITE_JSONBIN_ID}`, {
+    method: "PUT",
+    headers: {
+      "X-Master-Key": import.meta.env.VITE_JSONBIN_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(updatedBin),
+  });
+  if (!res.ok) throw new Error("Failed to update Jsonbin.io");
+  return res.json();
+};
+
 export default function AuthLanding() {
   const navigate = useNavigate();
   const [view, setView] = useState("landing"); // landing, login, signup-role, signup-troop, signup-form
@@ -17,119 +43,93 @@ export default function AuthLanding() {
     lastName: ""
   });
 
+  // --- Signup handler ---
   const handleSignup = async (e) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       alert("Passwords don't match!");
       return;
     }
 
-    // Create new user account
-    const newUser = {
-      email: formData.email,
-      password: formData.password, // In production, this should be hashed!
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      userType: userType,
-      troop: selectedTroop,
-      approved: false,
-      pendingApproval: true,
-      createdAt: new Date().toISOString()
-    };
-
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser)
-      });
-      
-      if (response.ok) {
-        alert("Account created! Please wait for admin approval.");
-        setView("login");
-        setFormData({ email: "", password: "", confirmPassword: "", firstName: "", lastName: "" });
+      const binData = await fetchJSONBin();
+      const users = binData.users || [];
+
+      // Prevent duplicate emails
+      if (users.some(u => u.email.toLowerCase() === formData.email.toLowerCase())) {
+        alert("Email already exists!");
+        return;
       }
-    } catch (error) {
-      console.error("Signup error:", error);
+
+      const newUser = {
+        id: crypto.randomUUID(),
+        email: formData.email,
+        password: formData.password, // In production, hash this!
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        userType: userType,
+        troop: selectedTroop,
+        approved: false,
+        pendingApproval: true,
+        createdAt: new Date().toISOString()
+      };
+
+      const updatedBin = { ...binData, users: [...users, newUser] };
+      await updateJSONBin(updatedBin);
+
+      alert("Account created! Please wait for admin approval.");
+      setView("login");
+      setFormData({ email: "", password: "", confirmPassword: "", firstName: "", lastName: "" });
+    } catch (err) {
+      console.error(err);
       alert("Error creating account. Please try again.");
     }
   };
 
+  // --- Login handler ---
   const handleLogin = async (e) => {
     e.preventDefault();
-    
+
     try {
-      // FIRST: Clear any existing session data
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('activeTroop');
-      
-      // Fetch users and check credentials
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/users`);
-      const users = await response.json();
-      
-      console.log('All users:', users);
-      console.log('Looking for email:', formData.email);
-      console.log('Looking for password:', formData.password);
-      
-      const user = users.find(u => 
-        u.email.toLowerCase().trim() === formData.email.toLowerCase().trim() && 
+      const binData = await fetchJSONBin();
+      const users = binData.users || [];
+
+      const user = users.find(u =>
+        u.email.toLowerCase().trim() === formData.email.toLowerCase().trim() &&
         u.password === formData.password
       );
-      
-      console.log('Found user:', user);
-      
+
       if (!user) {
         alert("Invalid email or password!");
         return;
       }
 
-      // Check if user is approved
       if (!user.approved && user.pendingApproval) {
         navigate(`/waiting-approval?type=Admin`);
         return;
       }
 
-      // CRITICAL: Set the active troop based on user type BEFORE storing user
+      // Set active troop
       if (user.userType === 'admin') {
-        // Admin: Default to 714 (they can switch later)
         localStorage.setItem('activeTroop', '714');
-        console.log('Admin login - set activeTroop to 714');
       } else {
-        // Regular leader: ALWAYS set to their assigned troop
-        // This overwrites any admin's previous selection
-        const userTroop = user.troop || '714';
-        localStorage.setItem('activeTroop', userTroop);
-        console.log('Leader login - set activeTroop to:', userTroop);
+        localStorage.setItem('activeTroop', user.troop || '714');
       }
 
-      // Store user session AFTER setting troop
       localStorage.setItem('currentUser', JSON.stringify(user));
-      
-      console.log('=== LOGIN SUCCESS ===');
-      console.log('User ID:', user.id);
-      console.log('User Email:', user.email);
-      console.log('User Type:', user.userType);
-      console.log('User Troop:', user.troop);
-      console.log('Active Troop set to:', localStorage.getItem('activeTroop'));
-      console.log('currentUser in localStorage:', localStorage.getItem('currentUser'));
-      console.log('===================');
-      
-      // Force a page reload to ensure context updates
       window.location.href = '/app/dashboard';
-      
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch (err) {
+      console.error(err);
       alert("Error logging in. Please try again.");
     }
   };
 
-  // Landing View
+  // --- Landing View ---
   if (view === "landing") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          {/* Logo/Title */}
           <div className="text-center mb-8">
             <div className="w-24 h-24 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-2xl">
               <span className="text-4xl">🏕️</span>
@@ -137,8 +137,6 @@ export default function AuthLanding() {
             <h1 className="text-5xl font-bold text-white mb-2">Troop 714</h1>
             <p className="text-xl text-blue-200">Management System</p>
           </div>
-
-          {/* Action Buttons */}
           <div className="bg-white rounded-2xl shadow-2xl p-8 space-y-4">
             <Button
               onClick={() => setView("login")}
@@ -154,7 +152,6 @@ export default function AuthLanding() {
               Sign Up
             </Button>
           </div>
-
           <p className="text-center text-blue-200 mt-6 text-sm">
             Official portal for BSA Troop 714 & 5714
           </p>
@@ -163,7 +160,7 @@ export default function AuthLanding() {
     );
   }
 
-  // Login View
+  // --- Login View ---
   if (view === "login") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center p-4">
@@ -228,7 +225,7 @@ export default function AuthLanding() {
     );
   }
 
-  // Signup - Select Role
+  // --- Signup Role View ---
   if (view === "signup-role") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center p-4">
@@ -270,7 +267,7 @@ export default function AuthLanding() {
     );
   }
 
-  // Signup - Select Troop
+  // --- Signup Troop View ---
   if (view === "signup-troop") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center p-4">
@@ -315,7 +312,7 @@ export default function AuthLanding() {
     );
   }
 
-  // Signup - Form
+  // --- Signup Form View ---
   if (view === "signup-form") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 flex items-center justify-center p-4">

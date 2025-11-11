@@ -10,6 +10,24 @@ import ScoutCard from "../components/scouts/ScoutCard";
 import ScoutDialog from "../components/scouts/ScoutDialog";
 import ScoutDetailDialog from "../components/scouts/ScoutDetailDialog";
 
+// JSONBin setup
+const JSONBIN_BASE_URL = `https://api.jsonbin.io/v3/b/${import.meta.env.VITE_JSONBIN_ID}`;
+const fetchJSONBin = async (method = "GET", data) => {
+  const options = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": import.meta.env.VITE_JSONBIN_KEY,
+    },
+  };
+  if (data) options.body = JSON.stringify(data);
+
+  const res = await fetch(JSONBIN_BASE_URL, options);
+  if (!res.ok) throw new Error(`Jsonbin request failed: ${res.status}`);
+  const json = await res.json();
+  return json.record;
+};
+
 export default function Scouts() {
   const { activeTroop } = useTroop();
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,27 +39,29 @@ export default function Scouts() {
 
   const queryClient = useQueryClient();
 
-  // Fetch scouts from local JSON Server
-  const { data: allScouts = [], isLoading } = useQuery({
-    queryKey: ['scouts', activeTroop],
-    queryFn: () =>
-      fetch(`${import.meta.env.VITE_API_URL}/scouts`)
-        .then(res => res.json()),
+  // Fetch all data from JSONBin
+  const { data: binData = {}, isLoading } = useQuery({
+    queryKey: ["jsonbin", activeTroop],
+    queryFn: () => fetchJSONBin(),
   });
 
+  const allScouts = binData.scouts || [];
+  const allMeritBadges = binData.meritBadges || [];
+  const allAdvancements = binData.advancements || [];
+  const allAttendance = binData.attendance || [];
+
   // Filter scouts by active troop
-  const scouts = allScouts.filter(s => s.troop === activeTroop);
+  const scouts = allScouts.filter((s) => s.troop === activeTroop);
 
   // Create scout
   const createScoutMutation = useMutation({
-    mutationFn: (data) =>
-      fetch(`${import.meta.env.VITE_API_URL}/scouts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, troop: activeTroop }),
-      }).then(res => res.json()),
+    mutationFn: async (data) => {
+      const bin = await fetchJSONBin();
+      const updatedScouts = [...(bin.scouts || []), { ...data, troop: activeTroop, id: `scout-${Date.now()}` }];
+      return fetchJSONBin("PUT", { ...bin, scouts: updatedScouts });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scouts'] });
+      queryClient.invalidateQueries({ queryKey: ["jsonbin"] });
       setShowDialog(false);
       setEditingScout(null);
     },
@@ -49,117 +69,67 @@ export default function Scouts() {
 
   // Update scout
   const updateScoutMutation = useMutation({
-    mutationFn: ({ id, data }) =>
-      fetch(`${import.meta.env.VITE_API_URL}/scouts/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).then(res => res.json()),
+    mutationFn: async ({ id, data }) => {
+      const bin = await fetchJSONBin();
+      const updatedScouts = (bin.scouts || []).map((s) => (s.id === id ? { ...s, ...data } : s));
+      return fetchJSONBin("PUT", { ...bin, scouts: updatedScouts });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['scouts'] });
+      queryClient.invalidateQueries({ queryKey: ["jsonbin"] });
       setShowDialog(false);
       setEditingScout(null);
     },
   });
 
-  // Delete scout with cascade - also delete their merit badges, advancements, and attendance
+  // Delete scout with cascade (merit badges, advancements, attendance)
   const deleteScoutMutation = useMutation({
     mutationFn: async (scoutId) => {
-      console.log('Deleting scout:', scoutId);
-      
-      // 1. Fetch all merit badges for this scout
-      const meritBadgesRes = await fetch(`${import.meta.env.VITE_API_URL}/meritBadges?scout_id=${scoutId}`);
-      const meritBadges = await meritBadgesRes.json();
-      console.log('Found merit badges to delete:', meritBadges.length);
-      
-      // 2. Fetch all advancements for this scout
-      const advancementsRes = await fetch(`${import.meta.env.VITE_API_URL}/advancements?scout_id=${scoutId}`);
-      const advancements = await advancementsRes.json();
-      console.log('Found advancements to delete:', advancements.length);
-      
-      // 3. Fetch all attendance records for this scout
-      const attendanceRes = await fetch(`${import.meta.env.VITE_API_URL}/attendance?scout_id=${scoutId}`);
-      const attendanceRecords = await attendanceRes.json();
-      console.log('Found attendance records to delete:', attendanceRecords.length);
-      
-      // 4. Delete all merit badges
-      for (const badge of meritBadges) {
-        await fetch(`${import.meta.env.VITE_API_URL}/meritBadges/${badge.id}`, {
-          method: 'DELETE',
-        });
-      }
-      
-      // 5. Delete all advancements
-      for (const advancement of advancements) {
-        await fetch(`${import.meta.env.VITE_API_URL}/advancements/${advancement.id}`, {
-          method: 'DELETE',
-        });
-      }
-      
-      // 6. Delete all attendance records
-      for (const attendance of attendanceRecords) {
-        await fetch(`${import.meta.env.VITE_API_URL}/attendance/${attendance.id}`, {
-          method: 'DELETE',
-        });
-      }
-      
-      // 7. Finally, delete the scout
-      const scoutRes = await fetch(`${import.meta.env.VITE_API_URL}/scouts/${scoutId}`, {
-        method: 'DELETE',
+      const bin = await fetchJSONBin();
+
+      const updatedScouts = (bin.scouts || []).filter((s) => s.id !== scoutId);
+      const updatedMeritBadges = (bin.meritBadges || []).filter((b) => b.scout_id !== scoutId);
+      const updatedAdvancements = (bin.advancements || []).filter((a) => a.scout_id !== scoutId);
+      const updatedAttendance = (bin.attendance || []).filter((att) => att.scout_id !== scoutId);
+
+      return fetchJSONBin("PUT", {
+        ...bin,
+        scouts: updatedScouts,
+        meritBadges: updatedMeritBadges,
+        advancements: updatedAdvancements,
+        attendance: updatedAttendance,
       });
-      
-      console.log('Scout and all related data deleted successfully');
-      return scoutRes.json();
     },
     onSuccess: () => {
-      // Invalidate all related queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: ['scouts'] });
-      queryClient.invalidateQueries({ queryKey: ['meritBadges'] });
-      queryClient.invalidateQueries({ queryKey: ['advancements'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["jsonbin"] });
+
       // Play success sound
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
       oscillator.frequency.value = 350;
-      oscillator.type = 'sine';
-      
+      oscillator.type = "sine";
       gainNode.gain.setValueAtTime(0.12, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
-      
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.25);
     },
     onError: (error) => {
-      console.error('Error deleting scout:', error);
-      alert('Failed to delete scout. Please try again.');
-    }
+      console.error("Error deleting scout:", error);
+      alert("Failed to delete scout. Please try again.");
+    },
   });
 
-  const handleDelete = (id) => {
-    deleteScoutMutation.mutate(id);
-  };
-
+  const handleDelete = (id) => deleteScoutMutation.mutate(id);
   const handleSave = (data) => {
-    if (editingScout) {
-      updateScoutMutation.mutate({ id: editingScout.id, data });
-    } else {
-      createScoutMutation.mutate(data);
-    }
+    if (editingScout) updateScoutMutation.mutate({ id: editingScout.id, data });
+    else createScoutMutation.mutate(data);
   };
+  const handleEdit = (scout) => { setEditingScout(scout); setShowDialog(true); };
 
-  const handleEdit = (scout) => {
-    setEditingScout(scout);
-    setShowDialog(true);
-  };
-
-  const filteredScouts = scouts.filter(scout => {
-    const matchesSearch = 
+  const filteredScouts = scouts.filter((scout) => {
+    const matchesSearch =
       scout.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       scout.last_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesPatrol = patrolFilter === "all" || scout.patrol === patrolFilter;
@@ -167,8 +137,8 @@ export default function Scouts() {
     return matchesSearch && matchesPatrol && matchesRank;
   });
 
-  const activeScouts = filteredScouts.filter(s => s.active);
-  const inactiveScouts = filteredScouts.filter(s => !s.active);
+  const activeScouts = filteredScouts.filter((s) => s.active);
+  const inactiveScouts = filteredScouts.filter((s) => !s.active);
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
@@ -180,14 +150,10 @@ export default function Scouts() {
             <p className="text-slate-600">Manage Troop {activeTroop} members</p>
           </div>
           <Button
-            onClick={() => {
-              setEditingScout(null);
-              setShowDialog(true);
-            }}
+            onClick={() => { setEditingScout(null); setShowDialog(true); }}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Scout
+            <Plus className="w-4 h-4 mr-2" /> Add Scout
           </Button>
         </div>
 
@@ -203,7 +169,7 @@ export default function Scouts() {
                 className="pl-10 border-slate-200 focus:border-blue-500"
               />
             </div>
-            
+
             <Select value={patrolFilter} onValueChange={setPatrolFilter}>
               <SelectTrigger className="border-slate-200">
                 <SelectValue placeholder="Filter by Patrol" />
@@ -239,9 +205,7 @@ export default function Scouts() {
 
         {/* Active Scouts */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold text-slate-900 mb-4">
-            Active Scouts ({activeScouts.length})
-          </h2>
+          <h2 className="text-xl font-bold text-slate-900 mb-4">Active Scouts ({activeScouts.length})</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {activeScouts.map((scout) => (
               <ScoutCard
@@ -253,17 +217,13 @@ export default function Scouts() {
               />
             ))}
           </div>
-          {activeScouts.length === 0 && (
-            <p className="text-center text-slate-500 py-12">No active scouts found</p>
-          )}
+          {activeScouts.length === 0 && <p className="text-center text-slate-500 py-12">No active scouts found</p>}
         </div>
 
         {/* Inactive Scouts */}
         {inactiveScouts.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold text-slate-900 mb-4">
-              Inactive Scouts ({inactiveScouts.length})
-            </h2>
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Inactive Scouts ({inactiveScouts.length})</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {inactiveScouts.map((scout) => (
                 <ScoutCard
@@ -281,19 +241,12 @@ export default function Scouts() {
         {/* Dialogs */}
         <ScoutDialog
           open={showDialog}
-          onClose={() => {
-            setShowDialog(false);
-            setEditingScout(null);
-          }}
+          onClose={() => { setShowDialog(false); setEditingScout(null); }}
           onSave={handleSave}
           scout={editingScout}
           isLoading={createScoutMutation.isPending || updateScoutMutation.isPending}
         />
-
-        <ScoutDetailDialog
-          scout={selectedScout}
-          onClose={() => setSelectedScout(null)}
-        />
+        <ScoutDetailDialog scout={selectedScout} onClose={() => setSelectedScout(null)} />
       </div>
     </div>
   );

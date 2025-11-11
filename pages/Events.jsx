@@ -8,11 +8,22 @@ import EventCard from "../components/events/EventCard";
 import EventDialog from "../components/events/EventDialog";
 import AttendanceDialog from "../components/events/AttendanceDialog";
 
-// Generic fetch function for local JSON-server
-const fetchJSON = async (endpoint) => {
-  const res = await fetch(`${import.meta.env.VITE_API_URL}/${endpoint}`);
-  if (!res.ok) throw new Error("Network response was not ok");
-  return res.json();
+const JSONBIN_BASE_URL = `https://api.jsonbin.io/v3/b/${import.meta.env.VITE_JSONBIN_ID}`;
+
+const fetchJSONBin = async (method = "GET", data) => {
+  const options = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": import.meta.env.VITE_JSONBIN_KEY,
+    },
+  };
+  if (data) options.body = JSON.stringify(data);
+
+  const res = await fetch(JSONBIN_BASE_URL, options);
+  if (!res.ok) throw new Error(`Jsonbin request failed: ${res.status}`);
+  const json = await res.json();
+  return json.record;
 };
 
 export default function Events() {
@@ -24,7 +35,7 @@ export default function Events() {
 
   const queryClient = useQueryClient();
 
-  // Reset tab when troop changes
+  // Reset tab/dialogs when troop changes
   useEffect(() => {
     setActiveTab("upcoming");
     setShowDialog(false);
@@ -32,28 +43,31 @@ export default function Events() {
     setAttendanceEvent(null);
   }, [activeTroop]);
 
-  // Fetch all events and filter by troop in the component
+  // Fetch all events
   const { data: allEvents = [], isLoading } = useQuery({
     queryKey: ["events", activeTroop],
-    queryFn: () => fetchJSON("events"),
+    queryFn: async () => {
+      const binData = await fetchJSONBin();
+      return binData.events || [];
+    },
   });
 
   // Filter events by active troop
   const events = allEvents.filter(e => e.troop === activeTroop);
 
-  console.log('Events page - activeTroop:', activeTroop);
-  console.log('Events page - all events:', allEvents);
-  console.log('Events page - filtered events:', events);
+  console.log("Events page - activeTroop:", activeTroop);
+  console.log("Events page - all events:", allEvents);
+  console.log("Events page - filtered events:", events);
 
-  // Mutations for creating/updating events
+  // Helper to fetch entire bin for mutations
+  const fetchBinData = async () => await fetchJSONBin();
+
+  // Create event mutation
   const createEventMutation = useMutation({
-    mutationFn: async (data) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, troop: activeTroop }),
-      });
-      return res.json();
+    mutationFn: async (newEvent) => {
+      const binData = await fetchBinData();
+      const updatedEvents = [...(binData.events || []), { ...newEvent, troop: activeTroop }];
+      return fetchJSONBin("PUT", { ...binData, events: updatedEvents });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
@@ -62,14 +76,12 @@ export default function Events() {
     },
   });
 
+  // Update event mutation
   const updateEventMutation = useMutation({
     mutationFn: async ({ id, data }) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/events/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      return res.json();
+      const binData = await fetchBinData();
+      const updatedEvents = (binData.events || []).map(e => (e.id === id ? { ...e, ...data } : e));
+      return fetchJSONBin("PUT", { ...binData, events: updatedEvents });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"] });
@@ -78,106 +90,84 @@ export default function Events() {
     },
   });
 
+  // Delete event mutation with sound effect
   const deleteEventMutation = useMutation({
     mutationFn: async (id) => {
-      console.log('Deleting event:', id);
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/events/${id}`, {
-        method: "DELETE",
-      });
-      
-      if (!res.ok) {
-        throw new Error('Failed to delete event');
-      }
-      
-      // For DELETE requests, sometimes the response is empty
-      // Try to parse as JSON, but don't fail if it's empty
-      try {
-        return await res.json();
-      } catch {
-        return { success: true };
-      }
+      console.log("Deleting event:", id);
+      const binData = await fetchBinData();
+      const updatedEvents = (binData.events || []).filter(e => e.id !== id);
+      return fetchJSONBin("PUT", { ...binData, events: updatedEvents });
     },
     onSuccess: () => {
-      console.log('Event deleted successfully');
+      console.log("Event deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["events"] });
-      
+
       // Play success sound
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
       oscillator.frequency.value = 350;
-      oscillator.type = 'sine';
-      
+      oscillator.type = "sine";
       gainNode.gain.setValueAtTime(0.12, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
-      
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.25);
     },
     onError: (error) => {
-      console.error('Error deleting event:', error);
-      alert('Failed to delete event. Please try again.');
-    }
+      console.error("Error deleting event:", error);
+      alert("Failed to delete event. Please try again.");
+    },
   });
 
   const handleSave = (data) => {
     if (editingEvent) {
       updateEventMutation.mutate({ id: editingEvent.id, data });
     } else {
-      createEventMutation.mutate(data);
+      createEventMutation.mutate({ ...data, id: `event-${Date.now()}` });
     }
   };
 
-  const handleDelete = (id) => {
-    console.log('handleDelete called with id:', id);
-    deleteEventMutation.mutate(id);
-  };
+  const handleDelete = (id) => deleteEventMutation.mutate(id);
 
   const handleMarkComplete = (id) => {
-    if (confirm('Mark this event as complete? It will be moved to Past Events.')) {
+    if (confirm("Mark this event as complete? It will be moved to Past Events.")) {
       const event = events.find(e => e.id === id);
       if (event) {
-        // Mark event as completed - keep original dates but add completed flag
         updateEventMutation.mutate({
           id,
           data: {
             ...event,
             completed: true,
-            completed_date: new Date().toISOString().split('T')[0]
-          }
+            completed_date: new Date().toISOString().split("T")[0],
+          },
         });
       }
     }
   };
 
+  // Separate upcoming vs past
   const upcomingEvents = events.filter(e => {
-    // If manually marked as completed, it goes to past
     if (e.completed) return false;
-    
-    // Parse the date string as local date (YYYY-MM-DD)
-    const [year, month, day] = e.start_date.split('-').map(Number);
-    const eventDate = new Date(year, month - 1, day); // month is 0-indexed
+    if (!e.start_date) return true;
+    const [year, month, day] = e.start_date.split("-").map(Number);
+    const eventDate = new Date(year, month - 1, day);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return eventDate >= today;
   });
-  
+
   const pastEvents = events.filter(e => {
-    // If manually marked as completed, it goes to past
     if (e.completed) return true;
-    
-    // Parse the date string as local date (YYYY-MM-DD)
-    const [year, month, day] = e.start_date.split('-').map(Number);
-    const eventDate = new Date(year, month - 1, day); // month is 0-indexed
+    if (!e.start_date) return false;
+    const [year, month, day] = e.start_date.split("-").map(Number);
+    const eventDate = new Date(year, month - 1, day);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return eventDate < today;
   });
-  
+
   const displayEvents = activeTab === "upcoming" ? upcomingEvents : pastEvents;
 
   return (
@@ -190,26 +180,20 @@ export default function Events() {
             <p className="text-slate-600">Manage Troop {activeTroop} calendar and attendance</p>
           </div>
           <Button
-            onClick={() => {
-              setEditingEvent(null);
-              setShowDialog(true);
-            }}
+            onClick={() => { setEditingEvent(null); setShowDialog(true); }}
             className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Event
+            <Plus className="w-4 h-4 mr-2" /> Add Event
           </Button>
         </div>
 
-        {/* Custom Tabs */}
+        {/* Tabs */}
         <div className="mb-6">
           <div className="inline-flex bg-white rounded-lg shadow-md p-1">
             <button
               onClick={() => setActiveTab("upcoming")}
               className={`px-6 py-2.5 rounded-md font-medium transition-all duration-200 ${
-                activeTab === "upcoming"
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                activeTab === "upcoming" ? "bg-purple-600 text-white shadow-md" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
               Upcoming ({upcomingEvents.length})
@@ -217,9 +201,7 @@ export default function Events() {
             <button
               onClick={() => setActiveTab("past")}
               className={`px-6 py-2.5 rounded-md font-medium transition-all duration-200 ${
-                activeTab === "past"
-                  ? "bg-purple-600 text-white shadow-md"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                activeTab === "past" ? "bg-purple-600 text-white shadow-md" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
               Past ({pastEvents.length})
@@ -233,10 +215,7 @@ export default function Events() {
             <EventCard
               key={event.id}
               event={event}
-              onEdit={(event) => {
-                setEditingEvent(event);
-                setShowDialog(true);
-              }}
+              onEdit={(e) => { setEditingEvent(e); setShowDialog(true); }}
               onManageAttendance={setAttendanceEvent}
               onMarkComplete={activeTab === "upcoming" ? handleMarkComplete : null}
               onDelete={handleDelete}
@@ -246,17 +225,14 @@ export default function Events() {
 
         {displayEvents.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-slate-500 mb-4">
-              No {activeTab} events found for Troop {activeTroop}
-            </p>
+            <p className="text-slate-500 mb-4">No {activeTab} events found for Troop {activeTroop}</p>
             {activeTab === "upcoming" && (
               <Button
                 onClick={() => setShowDialog(true)}
                 variant="outline"
                 className="border-purple-500 text-purple-700 hover:bg-purple-50"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Schedule Your First Event
+                <Plus className="w-4 h-4 mr-2" /> Schedule Your First Event
               </Button>
             )}
           </div>
@@ -264,10 +240,7 @@ export default function Events() {
 
         <EventDialog
           open={showDialog}
-          onClose={() => {
-            setShowDialog(false);
-            setEditingEvent(null);
-          }}
+          onClose={() => { setShowDialog(false); setEditingEvent(null); }}
           onSave={handleSave}
           event={editingEvent}
           isLoading={createEventMutation.isPending || updateEventMutation.isPending}

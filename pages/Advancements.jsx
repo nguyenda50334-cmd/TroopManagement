@@ -9,10 +9,30 @@ import AdvancementDialog from "../components/advancements/AdvancementDialog";
 
 const rankOrder = ["Scout", "Tenderfoot", "Second Class", "First Class", "Star", "Life", "Eagle"];
 
-// Generic fetch function for JSON-server
-const fetchJSON = async (endpoint) => {
-  const res = await fetch(`${import.meta.env.VITE_API_URL}/${endpoint}`);
-  if (!res.ok) throw new Error("Network response was not ok");
+// Fetch full bin from Jsonbin.io
+const fetchJSONBin = async () => {
+  const res = await fetch(`https://api.jsonbin.io/v3/b/${import.meta.env.VITE_JSONBIN_ID}`, {
+    headers: {
+      "X-Master-Key": import.meta.env.VITE_JSONBIN_KEY,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) throw new Error("Failed to fetch from Jsonbin.io");
+  const data = await res.json();
+  return data.record; // Jsonbin stores your data inside "record"
+};
+
+// PUT full bin back to Jsonbin.io
+const updateJSONBin = async (updatedBin) => {
+  const res = await fetch(`https://api.jsonbin.io/v3/b/${import.meta.env.VITE_JSONBIN_ID}`, {
+    method: "PUT",
+    headers: {
+      "X-Master-Key": import.meta.env.VITE_JSONBIN_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(updatedBin),
+  });
+  if (!res.ok) throw new Error("Failed to update Jsonbin.io");
   return res.json();
 };
 
@@ -20,98 +40,81 @@ export default function Advancements() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingAdvancement, setEditingAdvancement] = useState(null);
   const [rankFilter, setRankFilter] = useState("all");
-
   const queryClient = useQueryClient();
 
-  // Fetch advancements
-  const { data: advancements = [] } = useQuery({
-    queryKey: ["advancements"],
-    queryFn: () => fetchJSON("advancements"),
+  // Fetch bin data
+  const { data: binData = {} } = useQuery({
+    queryKey: ["binData"],
+    queryFn: fetchJSONBin,
   });
 
-  // Fetch scouts
-  const { data: scouts = [] } = useQuery({
-    queryKey: ["scouts"],
-    queryFn: () => fetchJSON("scouts"),
-  });
+  const advancements = binData.advancements || [];
+  const scouts = binData.scouts || [];
 
-  // Mutations for creating/updating advancements
-  const createAdvancementMutation = useMutation({
-    mutationFn: async (data) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/advancements`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      return res.json();
+  // CREATE or UPDATE advancement
+  const saveAdvancementMutation = useMutation({
+    mutationFn: async (newOrUpdatedAdv) => {
+      const updatedAdvancements = editingAdvancement
+        ? advancements.map(a => (a.id === editingAdvancement.id ? { ...a, ...newOrUpdatedAdv } : a))
+        : [...advancements, newOrUpdatedAdv];
+
+      const updatedBin = { ...binData, advancements: updatedAdvancements };
+      return updateJSONBin(updatedBin);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["advancements"] });
+      queryClient.invalidateQueries({ queryKey: ["binData"] });
       setShowDialog(false);
       setEditingAdvancement(null);
     },
   });
 
-  const updateAdvancementMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/advancements/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      return res.json();
+  // UPDATE advancement status (and scout rank if needed)
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ advancement, newStatus }) => {
+      const today = new Date().toISOString().split('T')[0];
+      let updatedAdv = { ...advancement, status: newStatus };
+
+      // Update dates based on status
+      if (newStatus === "SM Conference Complete") {
+        updatedAdv.scoutmaster_conference_date = today;
+      } else if (newStatus === "Board of Review Complete") {
+        updatedAdv.board_of_review_date = today;
+        updatedAdv.date_completed = today;
+
+        // Update scout rank
+        const scout = scouts.find(s => s.id === advancement.scout_id);
+        if (scout) {
+          const currentRankIndex = rankOrder.indexOf(advancement.rank);
+          const nextRank = rankOrder[currentRankIndex + 1];
+          if (nextRank) {
+            scout.rank = nextRank;
+            updatedAdv.status = "Awarded";
+          } else {
+            updatedAdv.status = "Awarded";
+          }
+        }
+      }
+
+      // Update advancements and scouts arrays in bin
+      const updatedAdvancements = advancements.map(a => (a.id === advancement.id ? updatedAdv : a));
+      const updatedBin = { ...binData, advancements: updatedAdvancements, scouts };
+      return updateJSONBin(updatedBin);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["advancements"] });
-      queryClient.invalidateQueries({ queryKey: ["scouts"] });
-      setShowDialog(false);
-      setEditingAdvancement(null);
+      queryClient.invalidateQueries({ queryKey: ["binData"] });
     },
   });
 
   const handleSave = (data) => {
-    if (editingAdvancement) {
-      updateAdvancementMutation.mutate({ id: editingAdvancement.id, data });
-    } else {
-      createAdvancementMutation.mutate(data);
-    }
+    saveAdvancementMutation.mutate(data);
   };
 
-  const handleUpdateStatus = async (advancement, newStatus) => {
-    const today = new Date().toISOString().split('T')[0];
-    let updateData = { ...advancement, status: newStatus };
-
-    // Update dates based on status
-    if (newStatus === "SM Conference Complete") {
-      updateData.scoutmaster_conference_date = today;
-    } else if (newStatus === "Board of Review Complete") {
-      updateData.board_of_review_date = today;
-      updateData.date_completed = today;
-
-      // Update scout rank locally
-      const scout = scouts.find(s => s.id === advancement.scout_id);
-      if (scout) {
-        const currentRankIndex = rankOrder.indexOf(advancement.rank);
-        const nextRank = rankOrder[currentRankIndex + 1];
-        if (nextRank) {
-          // Update scout's rank in JSON-server
-          await fetch(`${import.meta.env.VITE_API_URL}/scouts/${scout.id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...scout, rank: nextRank }),
-          });
-          updateData.status = "Awarded";
-        } else {
-          updateData.status = "Awarded";
-        }
-      }
-    }
-
-    updateAdvancementMutation.mutate({ id: advancement.id, data: updateData });
+  const handleUpdateStatus = (advancement, newStatus) => {
+    updateStatusMutation.mutate({ advancement, newStatus });
   };
 
-  const filteredAdvancements = rankFilter === "all" 
-    ? advancements 
+  const filteredAdvancements = rankFilter === "all"
+    ? advancements
     : advancements.filter(a => a.rank === rankFilter);
 
   const groupedByScout = filteredAdvancements.reduce((acc, advancement) => {
@@ -222,7 +225,7 @@ export default function Advancements() {
           onSave={handleSave}
           advancement={editingAdvancement}
           scouts={scouts}
-          isLoading={createAdvancementMutation.isPending || updateAdvancementMutation.isPending}
+          isLoading={saveAdvancementMutation.isPending || updateStatusMutation.isPending}
         />
       </div>
     </div>

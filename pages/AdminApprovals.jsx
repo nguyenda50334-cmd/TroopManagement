@@ -5,29 +5,58 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle, Clock, Shield, Users as UsersIcon } from "lucide-react";
 import { format } from "date-fns";
 
+// Helper function to interact with Jsonbin.io
+const JSONBIN_BASE_URL = `https://api.jsonbin.io/v3/b/${import.meta.env.VITE_JSONBIN_ID}`;
+
+const fetchJSONBin = async (method = "GET", data) => {
+  const options = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": import.meta.env.VITE_JSONBIN_KEY,
+    },
+  };
+  if (data) options.body = JSON.stringify(data);
+
+  const res = await fetch(JSONBIN_BASE_URL, options);
+  if (!res.ok) throw new Error(`Jsonbin request failed: ${res.status}`);
+  const json = await res.json();
+  return json.record; // Jsonbin wraps data in "record"
+};
+
 export default function AdminApprovals() {
-  const [filter, setFilter] = useState("all"); // all, 714, 5714
+  const [filter, setFilter] = useState("all"); // all, scouts, leaders
   const queryClient = useQueryClient();
 
   // Fetch all users
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => fetch(`${import.meta.env.VITE_API_URL}/users`).then(res => res.json()),
+    queryKey: ["users"],
+    queryFn: async () => {
+      const binData = await fetchJSONBin();
+      return binData.users || [];
+    },
   });
+
+  // Fetch entire bin for mutations
+  const fetchBinData = async () => {
+    const binData = await fetchJSONBin();
+    return binData;
+  };
 
   // Approve user mutation
   const approveMutation = useMutation({
     mutationFn: async ({ id, userData }) => {
-      // First, approve the user account
-      const userResponse = await fetch(`${import.meta.env.VITE_API_URL}/users/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...userData, approved: true, pendingApproval: false })
-      });
-      
-      // If user is a scout, create a scout record
+      const binData = await fetchBinData();
+
+      // Update the specific user
+      const updatedUsers = binData.users.map(u =>
+        u.id === id ? { ...u, approved: true, pendingApproval: false } : u
+      );
+
+      // Add scout if needed
+      const updatedScouts = [...(binData.scouts || [])];
       if (userData.userType === "scout") {
-        const scoutData = {
+        updatedScouts.push({
           id: `scout-${Date.now()}`,
           first_name: userData.firstName,
           last_name: userData.lastName,
@@ -39,37 +68,36 @@ export default function AdminApprovals() {
           parent_name: "",
           parent_phone: "",
           parent_email: "",
-          join_date: new Date().toISOString().split('T')[0],
+          join_date: new Date().toISOString().split("T")[0],
           position: "",
           active: true,
           medical_notes: ""
-        };
-        
-        await fetch(`${import.meta.env.VITE_API_URL}/scouts`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(scoutData)
         });
       }
-      
-      return userResponse.json();
+
+      // Save back to Jsonbin
+      return fetchJSONBin("PUT", {
+        ...binData,
+        users: updatedUsers,
+        scouts: updatedScouts
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      queryClient.invalidateQueries({ queryKey: ['scouts'] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      queryClient.invalidateQueries({ queryKey: ["scouts"] });
     }
   });
 
   // Reject user mutation
   const rejectMutation = useMutation({
     mutationFn: async (id) => {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/users/${id}`, {
-        method: 'DELETE'
-      });
-      return response.json();
+      const binData = await fetchBinData();
+      const updatedUsers = binData.users.filter(u => u.id !== id);
+
+      return fetchJSONBin("PUT", { ...binData, users: updatedUsers });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
     }
   });
 
@@ -88,13 +116,10 @@ export default function AdminApprovals() {
   // Filter users
   const pendingUsers = users.filter(u => u.pendingApproval && !u.approved);
   const approvedUsers = users.filter(u => u.approved);
-  
+
   let displayUsers = pendingUsers;
-  if (filter === "scouts") {
-    displayUsers = pendingUsers.filter(u => u.userType === "scout");
-  } else if (filter === "leaders") {
-    displayUsers = pendingUsers.filter(u => u.userType === "leader");
-  }
+  if (filter === "scouts") displayUsers = pendingUsers.filter(u => u.userType === "scout");
+  if (filter === "leaders") displayUsers = pendingUsers.filter(u => u.userType === "leader");
 
   return (
     <div className="p-4 md:p-8 bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen">
@@ -150,9 +175,7 @@ export default function AdminApprovals() {
             <button
               onClick={() => setFilter("all")}
               className={`px-6 py-2.5 rounded-md font-medium transition-all duration-200 ${
-                filter === "all"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                filter === "all" ? "bg-blue-600 text-white shadow-md" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
               All ({pendingUsers.length})
@@ -160,9 +183,7 @@ export default function AdminApprovals() {
             <button
               onClick={() => setFilter("scouts")}
               className={`px-6 py-2.5 rounded-md font-medium transition-all duration-200 ${
-                filter === "scouts"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                filter === "scouts" ? "bg-blue-600 text-white shadow-md" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
               Scouts ({pendingUsers.filter(u => u.userType === "scout").length})
@@ -170,9 +191,7 @@ export default function AdminApprovals() {
             <button
               onClick={() => setFilter("leaders")}
               className={`px-6 py-2.5 rounded-md font-medium transition-all duration-200 ${
-                filter === "leaders"
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                filter === "leaders" ? "bg-blue-600 text-white shadow-md" : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
               Leaders ({pendingUsers.filter(u => u.userType === "leader").length})
