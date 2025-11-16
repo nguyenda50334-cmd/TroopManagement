@@ -10,6 +10,24 @@ import { CheckCircle2, XCircle, AlertCircle, Clock, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useTroop } from "../../context/TroopContext";
 
+const JSONBIN_BASE_URL = `https://api.jsonbin.io/v3/b/${import.meta.env.VITE_JSONBIN_ID}`;
+
+const fetchJSONBin = async (method = "GET", data) => {
+  const options = {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": import.meta.env.VITE_JSONBIN_KEY,
+    },
+  };
+  if (data) options.body = JSON.stringify(data);
+
+  const res = await fetch(JSONBIN_BASE_URL, options);
+  if (!res.ok) throw new Error(`Jsonbin request failed: ${res.status}`);
+  const json = await res.json();
+  return json.record;
+};
+
 const statusConfig = {
   "Present": {
     icon: CheckCircle2,
@@ -40,44 +58,52 @@ export default function AttendanceDialog({ event, onClose }) {
   console.log('AttendanceDialog - activeTroop:', activeTroop);
   console.log('AttendanceDialog - event:', event);
 
-  // Fetch scouts from json-server - FILTERED BY TROOP
+  // Fetch scouts from JSONBin
   const { data: allScouts = [] } = useQuery({
-    queryKey: ['scouts'],
-    queryFn: () => fetch('http://localhost:5000/scouts').then(res => res.json()),
+    queryKey: ['scouts', activeTroop],
+    queryFn: async () => {
+      const binData = await fetchJSONBin();
+      console.log('Fetched bin data:', binData);
+      return binData.scouts || [];
+    },
     enabled: !!event,
   });
 
-  console.log('AttendanceDialog - all scouts:', allScouts);
+  console.log('AttendanceDialog - all scouts from JSONBin:', allScouts);
 
   // Filter scouts by active troop and active status
   const troopScouts = allScouts.filter(s => s.troop === activeTroop && s.active);
   
   console.log('AttendanceDialog - troopScouts (filtered):', troopScouts);
 
-  // Fetch attendance records for this event
-  const { data: attendance = [] } = useQuery({
+  // Fetch attendance records from JSONBin
+  const { data: allAttendance = [] } = useQuery({
     queryKey: ['attendance', event?.id],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:5000/attendance?event_id=${event.id}`);
-      const data = await response.json();
-      console.log('Fetched attendance:', data);
-      return data;
+      const binData = await fetchJSONBin();
+      console.log('Fetched attendance from bin:', binData.attendance);
+      return binData.attendance || [];
     },
     enabled: !!event,
   });
 
+  // Filter attendance for this specific event
+  const attendance = allAttendance.filter(a => a.event_id === event?.id);
+  console.log('Attendance for this event:', attendance);
+
+  // Helper to fetch entire bin for mutations
+  const fetchBinData = async () => await fetchJSONBin();
+
   // Create attendance record
   const createAttendanceMutation = useMutation({
-    mutationFn: (data) => {
-      console.log('Creating attendance with data:', data);
-      return fetch('http://localhost:5000/attendance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).then(res => {
-        if (!res.ok) throw new Error('Failed to create attendance');
-        return res.json();
-      });
+    mutationFn: async (newAttendance) => {
+      console.log('Creating attendance with data:', newAttendance);
+      const binData = await fetchBinData();
+      const updatedAttendance = [...(binData.attendance || []), { 
+        ...newAttendance, 
+        id: `attendance-${Date.now()}`
+      }];
+      return fetchJSONBin("PUT", { ...binData, attendance: updatedAttendance });
     },
     onSuccess: (data) => {
       console.log('Created attendance successfully:', data);
@@ -91,16 +117,13 @@ export default function AttendanceDialog({ event, onClose }) {
 
   // Update attendance record
   const updateAttendanceMutation = useMutation({
-    mutationFn: ({ id, data }) => {
+    mutationFn: async ({ id, data }) => {
       console.log('Updating attendance:', id, 'with data:', data);
-      return fetch(`http://localhost:5000/attendance/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).then(res => {
-        if (!res.ok) throw new Error('Failed to update attendance');
-        return res.json();
-      });
+      const binData = await fetchBinData();
+      const updatedAttendance = (binData.attendance || []).map(a => 
+        a.id === id ? { ...a, ...data } : a
+      );
+      return fetchJSONBin("PUT", { ...binData, attendance: updatedAttendance });
     },
     onSuccess: (data) => {
       console.log('Updated attendance successfully:', data);
@@ -140,9 +163,8 @@ export default function AttendanceDialog({ event, onClose }) {
 
   if (!event) return null;
 
-  // Calculate statistics using troopScouts instead of activeScouts
+  // Calculate statistics using troopScouts
   const presentCount = attendance.filter(a => {
-    // Only count attendance for scouts in current troop
     const scout = troopScouts.find(s => s.id === a.scout_id);
     return scout && a.status === 'Present';
   }).length;
