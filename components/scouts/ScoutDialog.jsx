@@ -11,8 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useTroop } from "../../context/TroopContext";
 
 export default function ScoutDialog({ open, onClose, onSave, scout, isLoading }) {
+  const { activeTroop } = useTroop();
+  
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -29,6 +32,17 @@ export default function ScoutDialog({ open, onClose, onSave, scout, isLoading })
     active: true,
     medical_notes: "",
   });
+
+  // Define patrols based on troop
+  const getPatrolsForTroop = () => {
+    if (activeTroop === "7514") {
+      return ["Unassigned", "Leadership", "Hummingbirds", "Swans", "Flamingos"];
+    } else {
+      return ["Unassigned", "Leadership", "Eagles", "Buffalos", "Alligators"];
+    }
+  };
+
+  const patrols = getPatrolsForTroop();
 
   useEffect(() => {
     if (scout) {
@@ -65,6 +79,7 @@ export default function ScoutDialog({ open, onClose, onSave, scout, isLoading })
           <DialogTitle className="text-2xl font-bold">
             {scout ? "Edit Scout" : "Add New Scout"}
           </DialogTitle>
+          <p className="text-sm text-slate-500">Troop {activeTroop}</p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -147,11 +162,11 @@ export default function ScoutDialog({ open, onClose, onSave, scout, isLoading })
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Eagles">Eagles</SelectItem>
-                    <SelectItem value="Buffalos">Buffalos</SelectItem>
-                    <SelectItem value="Alligators">Alligators</SelectItem>
-                    <SelectItem value="Leadership">Leadership</SelectItem>
-                    <SelectItem value="Unassigned">Unassigned</SelectItem>
+                    {patrols.map((patrol) => (
+                      <SelectItem key={patrol} value={patrol}>
+                        {patrol}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

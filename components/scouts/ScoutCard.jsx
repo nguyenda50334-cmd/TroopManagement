@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Mail, Phone, Edit, Eye, Shield, Award, Trash2 } from "lucide-react";
 
 const rankColors = {
-    "Unranked": "bg-slate-100 text-slate-800",
+  "Unranked": "bg-slate-100 text-slate-800",
   "Scout": "bg-slate-100 text-slate-800",
   "Tenderfoot": "bg-green-100 text-green-800",
   "Second Class": "bg-blue-100 text-blue-800",
@@ -15,9 +15,15 @@ const rankColors = {
 };
 
 const patrolColors = {
+  // Boys Troop 714 Patrols
   "Eagles": "from-amber-400 to-amber-600",
   "Buffalos": "from-red-400 to-red-600",
   "Alligators": "from-green-400 to-green-600",
+  // Girls Troop 7514 Patrols
+  "Hummingbirds": "from-teal-400 to-teal-600",
+  "Swans": "from-pink-300 to-pink-500",
+  "Flamingos": "from-rose-400 to-rose-600",
+  // Shared
   "Leadership": "from-yellow-600 to-yellow-800",
   "Unassigned": "from-gray-300 to-gray-500"
 };
@@ -31,7 +37,7 @@ const playHoverSound = () => {
   oscillator.connect(gainNode);
   gainNode.connect(audioContext.destination);
   
-  oscillator.frequency.value = 300; // Lower frequency
+  oscillator.frequency.value = 300;
   oscillator.type = 'sine';
   
   gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
@@ -49,7 +55,7 @@ const playClickSound = () => {
   oscillator.connect(gainNode);
   gainNode.connect(audioContext.destination);
   
-  oscillator.frequency.value = 400; // Lower click sound
+  oscillator.frequency.value = 400;
   oscillator.type = 'sine';
   
   gainNode.gain.setValueAtTime(0.08, audioContext.currentTime);
@@ -62,13 +68,13 @@ const playClickSound = () => {
 export default function ScoutCard({ scout, onEdit, onView, onDelete }) {
   return (
     <Card className="group border-0 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden bg-white">
-      <div className={`h-2 bg-gradient-to-r ${patrolColors[scout.patrol]}`} />
+      <div className={`h-2 bg-gradient-to-r ${patrolColors[scout.patrol] || patrolColors["Unassigned"]}`} />
       
       <CardContent className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${patrolColors[scout.patrol]} flex items-center justify-center shadow-lg`}>
+            <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${patrolColors[scout.patrol] || patrolColors["Unassigned"]} flex items-center justify-center shadow-lg`}>
               <span className="text-xl font-bold text-white">
                 {scout.first_name?.[0]}{scout.last_name?.[0]}
               </span>

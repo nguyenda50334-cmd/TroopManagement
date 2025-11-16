@@ -41,16 +41,16 @@ export default function AttendanceDialog({ event, onClose }) {
   console.log('AttendanceDialog - event:', event);
 
   // Fetch scouts from json-server - FILTERED BY TROOP
-  const { data: scouts = [] } = useQuery({
-    queryKey: ['scouts', activeTroop],
+  const { data: allScouts = [] } = useQuery({
+    queryKey: ['scouts'],
     queryFn: () => fetch('http://localhost:5000/scouts').then(res => res.json()),
     enabled: !!event,
   });
 
-  console.log('AttendanceDialog - all scouts:', scouts);
+  console.log('AttendanceDialog - all scouts:', allScouts);
 
   // Filter scouts by active troop and active status
-  const troopScouts = scouts.filter(s => s.troop === activeTroop && s.active);
+  const troopScouts = allScouts.filter(s => s.troop === activeTroop && s.active);
   
   console.log('AttendanceDialog - troopScouts (filtered):', troopScouts);
 
@@ -68,28 +68,48 @@ export default function AttendanceDialog({ event, onClose }) {
 
   // Create attendance record
   const createAttendanceMutation = useMutation({
-    mutationFn: (data) =>
-      fetch('http://localhost:5000/attendance', {
+    mutationFn: (data) => {
+      console.log('Creating attendance with data:', data);
+      return fetch('http://localhost:5000/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      }).then(res => res.json()),
-    onSuccess: () => {
+      }).then(res => {
+        if (!res.ok) throw new Error('Failed to create attendance');
+        return res.json();
+      });
+    },
+    onSuccess: (data) => {
+      console.log('Created attendance successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['attendance', event?.id] });
     },
+    onError: (error) => {
+      console.error('Error creating attendance:', error);
+      alert('Failed to create attendance record. Please try again.');
+    }
   });
 
   // Update attendance record
   const updateAttendanceMutation = useMutation({
-    mutationFn: ({ id, data }) =>
-      fetch(`http://localhost:5000/attendance/${id}`, {
+    mutationFn: ({ id, data }) => {
+      console.log('Updating attendance:', id, 'with data:', data);
+      return fetch(`http://localhost:5000/attendance/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
-      }).then(res => res.json()),
-    onSuccess: () => {
+      }).then(res => {
+        if (!res.ok) throw new Error('Failed to update attendance');
+        return res.json();
+      });
+    },
+    onSuccess: (data) => {
+      console.log('Updated attendance successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['attendance', event?.id] });
     },
+    onError: (error) => {
+      console.error('Error updating attendance:', error);
+      alert('Failed to update attendance record. Please try again.');
+    }
   });
 
   const handleStatusChange = (scout, newStatus) => {
@@ -98,8 +118,7 @@ export default function AttendanceDialog({ event, onClose }) {
     console.log('Existing attendance:', existingAttendance);
     
     if (existingAttendance) {
-      // If clicking the same status, you could toggle it off
-      // For now, we'll just update to the new status
+      // Update existing record
       updateAttendanceMutation.mutate({
         id: existingAttendance.id,
         data: { 
@@ -230,7 +249,8 @@ export default function AttendanceDialog({ event, onClose }) {
                       <button
                         key={status}
                         onClick={() => handleStatusChange(scout, status)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                        disabled={createAttendanceMutation.isPending || updateAttendanceMutation.isPending}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
                           isActive ? config.activeClass : config.inactiveClass
                         }`}
                       >
