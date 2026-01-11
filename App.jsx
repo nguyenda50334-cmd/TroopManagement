@@ -10,6 +10,7 @@ import Advancements from "./pages/Advancements";
 import AuthLanding from "./pages/AuthLanding";
 import WaitingApproval from "./pages/WaitingApproval";
 import AdminApprovals from "./pages/AdminApprovals";
+import Funds from "./pages/Funds";
 
 function App() {
   return (
