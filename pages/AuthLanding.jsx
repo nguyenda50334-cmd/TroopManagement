@@ -174,7 +174,7 @@ export default function AuthLanding() {
 
           <div className="bg-white rounded-2xl shadow-2xl p-8">
             <h2 className="text-3xl font-bold text-slate-900 mb-6 text-center">Welcome Back</h2>
-            
+
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <Label htmlFor="email">Email</Label>
@@ -240,7 +240,7 @@ export default function AuthLanding() {
           <div className="bg-white rounded-2xl shadow-2xl p-8">
             <h2 className="text-3xl font-bold text-slate-900 mb-2 text-center">Leader Registration</h2>
             <p className="text-slate-600 text-center mb-8">This portal is for troop leaders only</p>
-            
+
             <div className="space-y-4">
               <button
                 onClick={() => {
@@ -254,10 +254,10 @@ export default function AuthLanding() {
                 <div className="text-sm text-slate-600">Register as a troop leader or adult volunteer</div>
               </button>
             </div>
-            
+
             <div className="mt-6 bg-amber-50 border border-amber-200 rounded-lg p-4">
               <p className="text-sm text-slate-700">
-                <strong>Note:</strong> This management system is for troop leaders only. 
+                <strong>Note:</strong> This management system is for troop leaders only.
                 Scouts will be added to the roster by leaders after approval.
               </p>
             </div>
@@ -282,7 +282,7 @@ export default function AuthLanding() {
           <div className="bg-white rounded-2xl shadow-2xl p-8">
             <h2 className="text-3xl font-bold text-slate-900 mb-2 text-center">Select Your Troop</h2>
             <p className="text-slate-600 text-center mb-8">Which troop are you part of?</p>
-            
+
             <div className="space-y-4">
               <button
                 onClick={() => {
@@ -304,6 +304,17 @@ export default function AuthLanding() {
               >
                 <div className="font-bold text-2xl text-slate-900 mb-1">Troop 5714</div>
                 <div className="text-sm text-slate-600">Girls Troop</div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setSelectedTroop("crew714");
+                  setView("signup-form");
+                }}
+                className="w-full p-6 border-2 border-slate-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all duration-200"
+              >
+                <div className="font-bold text-2xl text-slate-900 mb-1">Crew 714</div>
+                <div className="text-sm text-slate-600">Venturing Crew</div>
               </button>
             </div>
           </div>
@@ -329,7 +340,7 @@ export default function AuthLanding() {
             <p className="text-slate-600 text-center mb-6">
               Leader • Troop {selectedTroop}
             </p>
-            
+
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <Label htmlFor="firstName">First Name</Label>

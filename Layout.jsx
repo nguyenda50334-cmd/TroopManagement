@@ -11,6 +11,7 @@ const navigationItems = [
   { title: "Merit Badges", url: "/app/meritbadges", icon: Award },
   { title: "Events", url: "/app/events", icon: Calendar },
   { title: "Advancements", url: "/app/advancements", icon: TrendingUp },
+  { title: "Funds", url: "/app/funds", icon: DollarSign },
 ];
 
 export default function Layout() {

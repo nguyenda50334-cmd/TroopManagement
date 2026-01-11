@@ -29,6 +29,7 @@ function App() {
             <Route path="meritbadges" element={<MeritBadges />} />
             <Route path="events" element={<Events />} />
             <Route path="advancements" element={<Advancements />} />
+            <Route path="funds" element={<Funds />} />
             
             {/* Admin Routes */}
             <Route path="admin/approvals" element={<AdminApprovals />} />
