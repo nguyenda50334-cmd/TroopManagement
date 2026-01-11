@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, ShoppingCart, Calendar, DollarSign } from "lucide-react";
+import { Edit, Trash2, ShoppingCart, Calendar, DollarSign, FileText } from "lucide-react";
+import ExpenseSummaryDialog from "./ExpenseSummaryDialog";
 
 function formatDate(dateString) {
   const date = new Date(dateString);
@@ -8,6 +10,7 @@ function formatDate(dateString) {
 }
 
 export default function ExpenseCard({ expense, scouts, onEdit, onDelete }) {
+  const [showSummary, setShowSummary] = useState(false);
   const shoppingLists = expense.shoppingLists || [];
   
   const totalCost = shoppingLists.reduce((sum, list) => {
@@ -120,6 +123,15 @@ export default function ExpenseCard({ expense, scouts, onEdit, onDelete }) {
         {/* Actions */}
         <div className="flex gap-2 pt-4 border-t border-slate-200">
           <Button
+            onClick={() => setShowSummary(true)}
+            variant="outline"
+            size="sm"
+            className="flex-1 border-green-200 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+          >
+            <FileText className="w-3 h-3 mr-2" />
+            Summary
+          </Button>
+          <Button
             onClick={() => onEdit(expense)}
             variant="outline"
             size="sm"
@@ -139,6 +151,14 @@ export default function ExpenseCard({ expense, scouts, onEdit, onDelete }) {
           </Button>
         </div>
       </CardContent>
+
+      <ExpenseSummaryDialog
+        open={showSummary}
+        onClose={() => setShowSummary(false)}
+        expense={expense}
+        scouts={scouts}
+        totalCost={totalCost}
+      />
     </Card>
   );
 }
