@@ -1,6 +1,6 @@
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Users, Award, Calendar, TrendingUp, Shield, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Award, Calendar, TrendingUp, Shield, LogOut, DollarSign } from "lucide-react";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTroop } from "/context/TroopContext";
