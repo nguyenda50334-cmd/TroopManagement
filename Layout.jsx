@@ -88,6 +88,7 @@ export default function Layout() {
                   <SelectContent>
                     <SelectItem value="714">Troop 714 (Boys)</SelectItem>
                     <SelectItem value="5714">Troop 5714 (Girls)</SelectItem>
+                    <SelectItem value="crew714">Crew 714 (Venturing)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
